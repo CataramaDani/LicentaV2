@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Itrack\Anaf\Client;
-use GuzzleHttp\Client as GuzzleClient;
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Storage;
 
 class AnafController extends Controller
 {
@@ -30,8 +30,7 @@ class AnafController extends Controller
             $cui = $request->input('cui');
             $date = date('Y-m-d');
 
-            // Configurați clientul HTTP
-            $client = new GuzzleClient();
+            $client = new Client();
             $response = $client->post('https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva', [
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -42,15 +41,83 @@ class AnafController extends Controller
                         'data' => $date,
                     ]
                 ],
-                'verify' => false, // Dezactivează verificarea SSL
+                'verify' => false,
             ]);
 
-            // Decodificați răspunsul
             $data = json_decode($response->getBody(), true);
 
-            return response()->json($data);
+            if (!empty($data['found'])) {
+                // Process the data to match the expected structure in the frontend
+                $companyData = $this->processCompanyData($data['found'][0]);
+                
+                return response()->json([
+                    'success' => true,
+                    'data' => $companyData
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Nu s-au găsit date pentru acest CUI'
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
+    }
+
+    /**
+     * Process the ANAF API response to match the expected structure in the frontend
+     * 
+     * @param array $data Raw data from ANAF API
+     * @return array Processed data structure
+     */
+    private function processCompanyData($data)
+    {
+        // Initialize the structure that matches what your React component expects
+        $processedData = [
+            'date_generale' => [],
+            'inregistrare_scop_Tva' => [],
+            'inregistrare_RTVAI' => [],
+            'adresa_sediu_social' => [],
+            'stare_inactiv' => [],
+            'inregistrare_SplitTVA' => [],
+            'adresa_domiciliu_fiscal' => [], // Add this field which is in the API response
+        ];
+    
+        // Map general data
+        if (isset($data['date_generale'])) {
+            $processedData['date_generale'] = $data['date_generale']; // Use all fields as they are
+        }
+    
+        // Map VAT registration data
+        if (isset($data['inregistrare_scop_Tva'])) {
+            // Handle both the direct fields and the nested perioade_TVA object
+            $processedData['inregistrare_scop_Tva'] = [
+                'scpTVA' => $data['inregistrare_scop_Tva']['scpTVA'] ?? null,
+            ];
+            
+            // Handle the nested perioade_TVA object if it exists
+            if (isset($data['inregistrare_scop_Tva']['perioade_TVA'])) {
+                $processedData['inregistrare_scop_Tva'] = array_merge(
+                    $processedData['inregistrare_scop_Tva'], 
+                    $data['inregistrare_scop_Tva']['perioade_TVA']
+                );
+            }
+        }
+    
+        // Map other sections directly
+        $sections = ['inregistrare_RTVAI', 'adresa_sediu_social', 'stare_inactiv', 
+                     'inregistrare_SplitTVA', 'adresa_domiciliu_fiscal'];
+        
+        foreach ($sections as $section) {
+            if (isset($data[$section])) {
+                $processedData[$section] = $data[$section];
+            }
+        }
+    
+        return $processedData;
     }
 }
