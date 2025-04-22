@@ -40,6 +40,8 @@ Route::middleware(['auth'])->group(function () {
     // Add routes for offline and public tender searches
     Route::get('/pnrr/search-offline-acquisition', [PnrrController::class, 'searchOfflineAcquisitionById'])->name('pnrr.search.offline');
     Route::get('/pnrr/search-public-tender', [PnrrController::class, 'searchPublicTenderById'])->name('pnrr.search.tender');
+    // New route for aggregated pie chart data
+    Route::get('/pnrr/pie-data/{filename}', [PnrrController::class, 'getAggregatedDataByCity'])->name('pnrr.pie.data');
     Route::get('/pnrr/debug', [PnrrController::class, 'debugStorage'])->name('pnrr.debug');
     Route::get('/pnrr/simple-csv', [PnrrController::class, 'getSimpleCsv'])->name('pnrr.simple-csv'); // Fallback route
 });

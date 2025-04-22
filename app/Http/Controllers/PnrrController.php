@@ -377,6 +377,111 @@ class PnrrController extends Controller
     }
 
     /**
+     * Get aggregated contract values by city for a specific CSV file.
+     * Currently optimized for 'achizitii_directe.csv'.
+     *
+     * @param string $filename
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAggregatedDataByCity(string $filename)
+    {
+        if ($filename !== 'achizitii_directe.csv') {
+            return response()->json(['error' => 'Aggregation not supported for this file type.'], 400);
+        }
+
+        try {
+            $filePath = public_path('storage/' . $filename);
+            if (!file_exists($filePath)) {
+                return response()->json(['error' => 'File not found: ' . $filename], 404);
+            }
+
+            $handle = fopen($filePath, 'r');
+            if ($handle === false) {
+                throw new \Exception("Could not open file: {$filename}");
+            }
+
+            // --- Read Header and Find Columns ---
+            $headerLine = fgetcsv($handle);
+            if ($headerLine === false) {
+                fclose($handle);
+                throw new \Exception("Could not read header from file: {$filename}");
+            }
+            $originalHeaders = $headerLine;
+            $translatedHeaders = $this->translateHeaders($originalHeaders);
+
+            // Find indices using translated headers (adjust keys based on previous findings)
+            $cityHeaderKey = 'Oraș Furnizor'; 
+            $valueHeaderKey = 'Valoare Închidere'; // Use 'Valoare Închidere' or 'Valoare Contract' based on what works
+
+            $cityColumnIndex = array_search($cityHeaderKey, $translatedHeaders);
+            $valueColumnIndex = array_search($valueHeaderKey, $translatedHeaders);
+
+            // Fallback: try original headers if translated not found
+            if ($cityColumnIndex === false) {
+                 $originalCityKey = array_search($cityHeaderKey, $this->translateHeaders([])); // Find original key
+                 if ($originalCityKey) $cityColumnIndex = array_search($originalCityKey, $originalHeaders);
+            }
+             if ($valueColumnIndex === false) {
+                 $originalValueKey = array_search($valueHeaderKey, $this->translateHeaders([])); // Find original key
+                 if ($originalValueKey) $valueColumnIndex = array_search($originalValueKey, $originalHeaders);
+            }
+
+
+            if ($cityColumnIndex === false || $valueColumnIndex === false) {
+                fclose($handle);
+                Log::error("Required columns for aggregation not found in {$filename}. Needed: '{$cityHeaderKey}', '{$valueHeaderKey}'. Found Headers: " . implode(', ', $translatedHeaders));
+                return response()->json([
+                    'error' => "Required columns ('{$cityHeaderKey}', '{$valueHeaderKey}') not found in headers.",
+                    'available_headers' => $translatedHeaders
+                ], 500);
+            }
+            // --- End Header Reading ---
+
+
+            $aggregation = [];
+            // --- Process All Rows ---
+            while (($row = fgetcsv($handle)) !== false) {
+                // Ensure row has enough columns
+                 if (count($row) <= max($cityColumnIndex, $valueColumnIndex)) {
+                     Log::warning("Skipping row due to insufficient columns in {$filename}. Row data: " . implode(',', $row));
+                     continue; // Skip malformed rows
+                 }
+
+                $city = trim($row[$cityColumnIndex]) ?: 'Necunoscut';
+                $rawValue = $row[$valueColumnIndex] ?? '0';
+
+                // Clean and parse value (handle Romanian format)
+                $cleanedValue = str_replace('.', '', $rawValue); // Remove thousand separators
+                $cleanedValue = str_replace(',', '.', $cleanedValue); // Replace decimal comma
+                $value = floatval($cleanedValue);
+
+                if (!isset($aggregation[$city])) {
+                    $aggregation[$city] = 0;
+                }
+                $aggregation[$city] += $value;
+            }
+            fclose($handle);
+            // --- End Row Processing ---
+
+            // Prepare data for Chart.js
+            $labels = array_keys($aggregation);
+            $data = array_values($aggregation);
+
+            return response()->json([
+                'labels' => $labels,
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error aggregating data for {$filename}: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+             if (isset($handle) && is_resource($handle)) {
+                 fclose($handle);
+             }
+            return response()->json(['error' => 'Error processing file for aggregation: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Translate CSV headers from English to Romanian
      * 
      * @param array $headers Original headers
