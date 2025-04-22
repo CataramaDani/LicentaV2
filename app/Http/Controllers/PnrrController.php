@@ -52,8 +52,8 @@ class PnrrController extends Controller
                     
                     $records = [];
                     
-                    // Process only first 100 rows for safety
-                    $rowLimit = min(100, count($lines) - 1);
+                    // Process only first 1000 rows for safety
+                    $rowLimit = min(230, count($lines) - 1);
                     for ($i = 1; $i <= $rowLimit; $i++) {
                         if (isset($lines[$i]) && !empty(trim($lines[$i]))) {
                             $row = str_getcsv($lines[$i]);
@@ -95,6 +95,287 @@ class PnrrController extends Controller
         }
     }
     
+    /**
+     * Search for a specific Direct Acquisition by its ID efficiently.
+     */
+    public function searchDirectAcquisitionById(Request $request)
+    {
+        $searchId = $request->input('id');
+        if (empty($searchId)) {
+            return response()->json(['error' => 'ID is required'], 400);
+        }
+
+        $filename = 'achizitii_directe.csv';
+        $filePath = public_path('storage/' . $filename);
+
+        if (!file_exists($filePath)) {
+            return response()->json(['error' => 'File not found: ' . $filename], 404);
+        }
+
+        $results = [];
+        $headers = [];
+        $idColumnIndex = -1;
+
+        try {
+            $handle = fopen($filePath, 'r');
+            if ($handle === false) {
+                throw new \Exception("Could not open file: {$filename}");
+            }
+
+            // Read header row
+            $headerLine = fgetcsv($handle);
+            if ($headerLine === false) {
+                throw new \Exception("Could not read header from file: {$filename}");
+            }
+            
+            $originalHeaders = $headerLine;
+            $translatedHeaders = $this->translateHeaders($originalHeaders);
+            $headers = $translatedHeaders; // Store translated headers for results
+
+            // Find the index of the 'ID Achiziție Directă' column (using original header name for lookup)
+            $idKey = 'directAcquisitionID'; // Or 'item.directAcquisitionId' depending on the actual CSV header
+            // Check both possible keys for the ID
+            $idColumnIndexOriginal = array_search($idKey, $originalHeaders);
+            if ($idColumnIndexOriginal === false) {
+                 $idKey = 'item.directAcquisitionId';
+                 $idColumnIndexOriginal = array_search($idKey, $originalHeaders);
+            }
+
+            if ($idColumnIndexOriginal === false) {
+                 // If still not found, try the translated header just in case
+                 $translatedIdKey = $this->translateHeaders([$idKey])[0]; 
+                 $idColumnIndex = array_search($translatedIdKey, $translatedHeaders);
+                 if ($idColumnIndex === false) {
+                    throw new \Exception("ID column '{$idKey}' not found in headers.");
+                 }
+            } else {
+                $idColumnIndex = $idColumnIndexOriginal;
+            }
+
+
+            // Read data rows line by line
+            while (($row = fgetcsv($handle)) !== false) {
+                if (isset($row[$idColumnIndex]) && trim($row[$idColumnIndex]) === trim($searchId)) {
+                    // Found a match
+                    if (count($row) === count($headers)) {
+                         $record = [];
+                         foreach ($headers as $index => $header) {
+                             $record[$header] = $row[$index] ?? '';
+                         }
+                         $results[] = $record;
+                    } else {
+                         Log::warning("Row column count mismatch for ID {$searchId} in {$filename}. Expected: " . count($headers) . ", Got: " . count($row));
+                    }
+                    // If you only expect one result, you could break here:
+                    // break; 
+                }
+            }
+
+            fclose($handle);
+
+            return response()->json([
+                'headers' => $headers,
+                'rows' => $results,
+                'searchId' => $searchId,
+                'foundCount' => count($results)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error searching file {$filename} for ID {$searchId}: " . $e->getMessage());
+            if (isset($handle) && is_resource($handle)) {
+                fclose($handle);
+            }
+            return response()->json(['error' => 'Error searching file: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    /**
+     * Search for a specific Offline Acquisition by its ID efficiently.
+     */
+    public function searchOfflineAcquisitionById(Request $request)
+    {
+        $searchId = $request->input('id');
+        if (empty($searchId)) {
+            return response()->json(['error' => 'ID is required'], 400);
+        }
+
+        $filename = 'achizitii_offline.csv';
+        $filePath = public_path('storage/' . $filename);
+
+        if (!file_exists($filePath)) {
+            return response()->json(['error' => 'File not found: ' . $filename], 404);
+        }
+
+        $results = [];
+        $headers = [];
+        $idColumnIndex = -1;
+        $possibleIdKeys = ['item.daAwardNoticeId', 'siirapAcqId']; // Potential original header names for the ID
+
+        try {
+            $handle = fopen($filePath, 'r');
+            if ($handle === false) {
+                throw new \Exception("Could not open file: {$filename}");
+            }
+
+            // Read header row
+            $headerLine = fgetcsv($handle);
+            if ($headerLine === false) {
+                throw new \Exception("Could not read header from file: {$filename}");
+            }
+            
+            $originalHeaders = $headerLine;
+            $translatedHeaders = $this->translateHeaders($originalHeaders);
+            $headers = $translatedHeaders; // Store translated headers for results
+
+            // Find the index of the ID column
+            $foundIdKey = null;
+            foreach ($possibleIdKeys as $key) {
+                $idColumnIndexOriginal = array_search($key, $originalHeaders);
+                if ($idColumnIndexOriginal !== false) {
+                    $idColumnIndex = $idColumnIndexOriginal;
+                    $foundIdKey = $key;
+                    break;
+                }
+            }
+
+            if ($idColumnIndex === -1) {
+                 // Try translated headers if original keys not found
+                 $translatedIdKey = $this->translateHeaders(['item.daAwardNoticeId'])[0]; // 'ID Notificare Atribuire'
+                 $idColumnIndex = array_search($translatedIdKey, $translatedHeaders);
+                 if ($idColumnIndex === false) {
+                     throw new \Exception("ID column (tried: " . implode(', ', $possibleIdKeys) . ") not found in headers.");
+                 }
+            }
+
+            // Read data rows line by line
+            while (($row = fgetcsv($handle)) !== false) {
+                if (isset($row[$idColumnIndex]) && trim($row[$idColumnIndex]) === trim($searchId)) {
+                    // Found a match
+                    if (count($row) === count($headers)) {
+                         $record = [];
+                         foreach ($headers as $index => $header) {
+                             $record[$header] = $row[$index] ?? '';
+                         }
+                         $results[] = $record;
+                    } else {
+                         Log::warning("Row column count mismatch for ID {$searchId} in {$filename}. Expected: " . count($headers) . ", Got: " . count($row));
+                    }
+                    // break; // Uncomment if only one result is expected
+                }
+            }
+
+            fclose($handle);
+
+            return response()->json([
+                'headers' => $headers,
+                'rows' => $results,
+                'searchId' => $searchId,
+                'foundCount' => count($results)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error searching file {$filename} for ID {$searchId}: " . $e->getMessage());
+            if (isset($handle) && is_resource($handle)) {
+                fclose($handle);
+            }
+            return response()->json(['error' => 'Error searching file: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Search for a specific Public Tender by its ID efficiently.
+     */
+    public function searchPublicTenderById(Request $request)
+    {
+        $searchId = $request->input('id');
+        if (empty($searchId)) {
+            return response()->json(['error' => 'ID is required'], 400);
+        }
+
+        $filename = 'licitatii_publice.csv';
+        $filePath = public_path('storage/' . $filename);
+
+        if (!file_exists($filePath)) {
+            return response()->json(['error' => 'File not found: ' . $filename], 404);
+        }
+
+        $results = [];
+        $headers = [];
+        $idColumnIndex = -1;
+        // Potential original header names for the ID. Order matters for priority.
+        $possibleIdKeys = ['item.caNoticeId', 'item.noticeId', 'id']; 
+
+        try {
+            $handle = fopen($filePath, 'r');
+            if ($handle === false) {
+                throw new \Exception("Could not open file: {$filename}");
+            }
+
+            // Read header row
+            $headerLine = fgetcsv($handle);
+            if ($headerLine === false) {
+                throw new \Exception("Could not read header from file: {$filename}");
+            }
+            
+            $originalHeaders = $headerLine;
+            $translatedHeaders = $this->translateHeaders($originalHeaders);
+            $headers = $translatedHeaders; // Store translated headers for results
+
+            // Find the index of the ID column
+            $foundIdKey = null;
+            foreach ($possibleIdKeys as $key) {
+                $idColumnIndexOriginal = array_search($key, $originalHeaders);
+                if ($idColumnIndexOriginal !== false) {
+                    $idColumnIndex = $idColumnIndexOriginal;
+                    $foundIdKey = $key;
+                    break;
+                }
+            }
+
+            if ($idColumnIndex === -1) {
+                 // Try translated headers if original keys not found
+                 $translatedIdKey = $this->translateHeaders(['item.caNoticeId'])[0]; // 'ID Notificare AC'
+                 $idColumnIndex = array_search($translatedIdKey, $translatedHeaders);
+                 if ($idColumnIndex === false) {
+                     throw new \Exception("ID column (tried: " . implode(', ', $possibleIdKeys) . ") not found in headers.");
+                 }
+            }
+
+            // Read data rows line by line
+            while (($row = fgetcsv($handle)) !== false) {
+                if (isset($row[$idColumnIndex]) && trim($row[$idColumnIndex]) === trim($searchId)) {
+                    // Found a match
+                    if (count($row) === count($headers)) {
+                         $record = [];
+                         foreach ($headers as $index => $header) {
+                             $record[$header] = $row[$index] ?? '';
+                         }
+                         $results[] = $record;
+                    } else {
+                         Log::warning("Row column count mismatch for ID {$searchId} in {$filename}. Expected: " . count($headers) . ", Got: " . count($row));
+                    }
+                    // break; // Uncomment if only one result is expected
+                }
+            }
+
+            fclose($handle);
+
+            return response()->json([
+                'headers' => $headers,
+                'rows' => $results,
+                'searchId' => $searchId,
+                'foundCount' => count($results)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error searching file {$filename} for ID {$searchId}: " . $e->getMessage());
+            if (isset($handle) && is_resource($handle)) {
+                fclose($handle);
+            }
+            return response()->json(['error' => 'Error searching file: ' . $e->getMessage()], 500);
+        }
+    }
+
     /**
      * Translate CSV headers from English to Romanian
      * 

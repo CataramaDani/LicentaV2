@@ -31,6 +31,13 @@ Route::middleware(['auth'])->group(function () {
     
     Route::get('/pnrr', [PnrrController::class, 'index'])->name('pnrr');
     Route::get('/pnrr/data', [PnrrController::class, 'getCsvData'])->name('pnrr.data');
+    // Add the new route for specific ID search
+    Route::get('/pnrr/search-direct-acquisition', [PnrrController::class, 'searchDirectAcquisitionById'])->name('pnrr.search.direct');
+    // Add routes for offline and public tender searches
+    Route::get('/pnrr/search-offline-acquisition', [PnrrController::class, 'searchOfflineAcquisitionById'])->name('pnrr.search.offline');
+    Route::get('/pnrr/search-public-tender', [PnrrController::class, 'searchPublicTenderById'])->name('pnrr.search.tender');
+    Route::get('/pnrr/debug', [PnrrController::class, 'debugStorage'])->name('pnrr.debug');
+    Route::get('/pnrr/simple-csv', [PnrrController::class, 'getSimpleCsv'])->name('pnrr.simple-csv'); // Fallback route
 });
 
 // Test routes for diagnosing issues
