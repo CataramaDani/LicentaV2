@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from '@inertiajs/react';
 
 export default function CsvTable({ headers, rows }) {
     const [currentPage, setCurrentPage] = useState(1);
@@ -102,11 +103,24 @@ export default function CsvTable({ headers, rows }) {
                     <tbody className="divide-y divide-gray-200 bg-white">
                         {paginatedRows.map((row, rowIndex) => (
                             <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                {headers.map((header, colIndex) => (
-                                    <td key={colIndex} className="whitespace-nowrap px-6 py-4">
-                                        {row[header] || ''}
-                                    </td>
-                                ))}
+                                {headers.map((header) => {
+                                    const raw = row[header]?.toString() || '';
+                                    const stripped = raw.replace(/^RO/i, '');
+                                    return (
+                                        <td key={header} className="p-3 break-words text-gray-800">
+                                            {header.includes('CUI') ? (
+                                                <Link
+                                                    href={`/company-search?cui=${stripped}`}
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    {stripped || '-'}
+                                                </Link>
+                                            ) : (
+                                                raw
+                                            )}
+                                        </td>
+                                    );
+                                })}
                             </tr>
                         ))}
                     </tbody>

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
@@ -89,10 +90,34 @@ const JSONDisplay = ({ data, title, expanded = false }) => {
 };
 
 export default function CompanySearch() {
-    const [cui, setCui] = useState('');
+    const { presetCui } = usePage().props;
+    const [cui, setCui] = useState(presetCui || '');
     const [companyData, setCompanyData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (presetCui) {
+            (async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                    const response = await axios.get(`/anaf/company?cui=${presetCui}`);
+                    if (response.data.success) {
+                        setCompanyData(response.data.data);
+                    } else {
+                        setError(response.data.message);
+                        setCompanyData(null);
+                    }
+                } catch (err) {
+                    setError(err.response?.data?.message || 'Eroare la comunicarea cu serverul');
+                    setCompanyData(null);
+                } finally {
+                    setLoading(false);
+                }
+            })();
+        }
+    }, [presetCui]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

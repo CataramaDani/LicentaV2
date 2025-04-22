@@ -6,6 +6,7 @@ use App\Http\Controllers\PnrrController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     try {
@@ -25,8 +26,11 @@ Route::get('/test', function () {
 })->name('test');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/company-search', function () {
-        return Inertia::render('Anaf/CompanySearch');
+    Route::get('/company-search', function (Request $request) {
+        $presetCui = $request->query('cui', '');
+        return Inertia::render('Anaf/CompanySearch', [
+            'presetCui' => $presetCui,
+        ]);
     })->name('company.search');
     
     Route::get('/pnrr', [PnrrController::class, 'index'])->name('pnrr');
