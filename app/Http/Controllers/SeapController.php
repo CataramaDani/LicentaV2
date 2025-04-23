@@ -8,11 +8,11 @@ use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
 
-class PnrrController extends Controller
+class SeapController extends Controller
 {
     public function index()
     {
-        return Inertia::render('Pnrr/Index');
+        return Inertia::render('Seap/Index');
     }
 
     public function getCsvData()
@@ -24,7 +24,7 @@ class PnrrController extends Controller
             
             if (empty($files)) {
                 return response()->json([
-                    'message' => 'No CSV files found',
+                    'message' => 'No CSV file s found',
                     'path' => $path
                 ]);
             }

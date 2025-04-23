@@ -17,10 +17,10 @@ export default function Dashboard() {
 					<div className="overflow-hidden bg-white shadow-sm sm:rounded-lg p-6">
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							<Link
-								href={route('pnrr')}
-								className="block p-6 bg-blue-50 hover:bg-blue-100 rounded-lg shadow transition"
+								href={route('seap')}
+								className="block p-6 bg-blue-50 hover:b g-blue-100 rounded-lg shadow transition"
 							>
-								<h3 className="text-lg font-medium text-blue-700">PNRR</h3>
+								<h3 className="text-lg font-medium text-blue-700">SEAP</h3>
 								<p className="mt-2 text-sm text-blue-600">
 									Vezi datele din fișiere CSV și rapoarte.
 								</p>

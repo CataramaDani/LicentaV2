@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AnafController;
-use App\Http\Controllers\PnrrController;
+use App\Http\Controllers\SeapController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -33,17 +33,17 @@ Route::middleware(['auth'])->group(function () {
         ]);
     })->name('company.search');
     
-    Route::get('/pnrr', [PnrrController::class, 'index'])->name('pnrr');
-    Route::get('/pnrr/data', [PnrrController::class, 'getCsvData'])->name('pnrr.data');
+    Route::get('/seap', [SeapController::class, 'index'])->name('seap');
+    Route::get('/seap/data', [SeapController::class, 'getCsvData'])->name('seap.data');
     // Add the new route for specific ID search
-    Route::get('/pnrr/search-direct-acquisition', [PnrrController::class, 'searchDirectAcquisitionById'])->name('pnrr.search.direct');
+    Route::get('/seap/search-direct-acquisition', [SeapController::class, 'searchDirectAcquisitionById'])->name('seap.search.direct');
     // Add routes for offline and public tender searches
-    Route::get('/pnrr/search-offline-acquisition', [PnrrController::class, 'searchOfflineAcquisitionById'])->name('pnrr.search.offline');
-    Route::get('/pnrr/search-public-tender', [PnrrController::class, 'searchPublicTenderById'])->name('pnrr.search.tender');
+    Route::get('/seap/search-offline-acquisition', [SeapController::class, 'searchOfflineAcquisitionById'])->name('seap.search.offline');
+    Route::get('/seap/search-public-tender', [SeapController::class, 'searchPublicTenderById'])->name('seap.search.tender');
     // New route for aggregated pie chart data
-    Route::get('/pnrr/pie-data/{filename}', [PnrrController::class, 'getAggregatedDataByCity'])->name('pnrr.pie.data');
-    Route::get('/pnrr/debug', [PnrrController::class, 'debugStorage'])->name('pnrr.debug');
-    Route::get('/pnrr/simple-csv', [PnrrController::class, 'getSimpleCsv'])->name('pnrr.simple-csv'); // Fallback route
+    Route::get('/seap/pie-data/{filename}', [SeapController::class, 'getAggregatedDataByCity'])->name('seap.pie.data');
+    Route::get('/seap/debug', [SeapController::class, 'debugStorage'])->name('seap.debug');
+    Route::get('/seap/simple-csv', [SeapController::class, 'getSimpleCsv'])->name('seap.simple-csv'); // Fallback route
 });
 
 // Test routes for diagnosing issues
@@ -60,10 +60,10 @@ Route::get('/test-csv-files', function () {
     ]);
 })->name('test.csv');
 
-Route::get('/debug-storage', [PnrrController::class, 'debugStorage'])->name('debug.storage');
+Route::get('/debug-storage', [SeapController::class, 'debugStorage'])->name('debug.storage');
 
 // Simple CSV access for specific file
-Route::get('/simple-csv', [PnrrController::class, 'getSimpleCsv'])->name('simple.csv');
+Route::get('/simple-csv', [SeapController::class, 'getSimpleCsv'])->name('simple.csv');
 
 // Direct CSV test route
 Route::get('/direct-csv', function() {

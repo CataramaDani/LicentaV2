@@ -66,7 +66,7 @@ export default function Index({ auth }) {
         setPieError(null);
         try {
             // Use the named route if available, otherwise use the direct path
-            const pieRoute = route ? route('pnrr.pie.data', { filename: 'achizitii_directe.csv' }) : '/pnrr/pie-data/achizitii_directe.csv';
+            const pieRoute = route ? route('seap.pie.data', { filename: 'achizitii_directe.csv' }) : '/seap/pie-data/achizitii_directe.csv';
             const response = await axios.get(pieRoute);
             
             console.log("Aggregated Pie Data Response:", response.data);
@@ -119,7 +119,7 @@ export default function Index({ auth }) {
             // ... (rest of existing fetchData logic remains the same) ...
             // Try the main endpoint first
             try {
-                const tableRoute = route ? route('pnrr.data') : '/pnrr-data';
+                const tableRoute = route ? route('seap.data') : '/seap-data';
                 const response = await axios.get(tableRoute);
                 console.log('Main CSV Response (for tables):', response.data);
                 
@@ -166,7 +166,7 @@ export default function Index({ auth }) {
         setDirectAcquisitionSearchResults(null); // Clear previous results
 
         try {
-            const response = await axios.get(route('pnrr.search.direct', { id: directAcquisitionIdSearch }));
+            const response = await axios.get(route('seap.search.direct', { id: directAcquisitionIdSearch }));
             console.log('Specific Direct Search Response:', response.data);
             if (response.data.rows && response.data.rows.length > 0) {
                 setDirectAcquisitionSearchResults(response.data);
@@ -189,10 +189,10 @@ export default function Index({ auth }) {
         }
         setOfflineAcquisitionSearchLoading(true);
         setOfflineAcquisitionSearchError(null);
-        setOfflineAcquisitionSearchResults(null); // Clear previous results
+        setOfflineAcquisitionSearchResults(null);
 
         try {
-            const response = await axios.get(route('pnrr.search.offline', { id: offlineAcquisitionIdSearch }));
+            const response = await axios.get(route('seap.search.offline', { id: offlineAcquisitionIdSearch }));
             console.log('Specific Offline Search Response:', response.data);
             if (response.data.rows && response.data.rows.length > 0) {
                 setOfflineAcquisitionSearchResults(response.data);
@@ -218,7 +218,7 @@ export default function Index({ auth }) {
         setPublicTenderSearchResults(null); // Clear previous results
 
         try {
-            const response = await axios.get(route('pnrr.search.tender', { id: publicTenderIdSearch }));
+            const response = await axios.get(route('seap.search.tender', { id: publicTenderIdSearch }));
             console.log('Specific Tender Search Response:', response.data);
             if (response.data.rows && response.data.rows.length > 0) {
                 setPublicTenderSearchResults(response.data);
@@ -251,15 +251,13 @@ export default function Index({ auth }) {
         return fileDisplayNames[filename] || filename;
     };
 
-    // REMOVE the old pieData calculation using React.useMemo
-    // const pieData = React.useMemo(() => { ... }, [csvData, activeTab]); // DELETE THIS
 
     return (
         <AuthenticatedLayout
             user={auth.user}
-            header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Date PNRR</h2>}
+            header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Date SEAP</h2>}
         >
-            <Head title="PNRR" />
+            <Head title="SEAP" />
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">

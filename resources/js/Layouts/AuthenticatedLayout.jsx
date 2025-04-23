@@ -37,10 +37,10 @@ export default function AuthenticatedLayout({ header, children }) {
                                     Cauta companie
                                 </NavLink>
                                 <NavLink
-                                    href={route('pnrr')}
-                                    active={route().current('pnrr')}
+                                    href={route('seap')}
+                                    active={route().current('seap')}
                                 >
-                                    PNRR
+                                    SEAP
                                 </NavLink>
                             </div>
                         </div>
@@ -153,10 +153,10 @@ export default function AuthenticatedLayout({ header, children }) {
                             Cauta companie
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
-                            href={route('pnrr')}
-                            active={route().current('pnrr')}
+                            href={route('seap')}
+                            active={route().current('seap')}
                         >
-                            PNRR
+                            SEAP
                         </ResponsiveNavLink>
                     </div>
 
