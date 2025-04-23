@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 
 class AnafController extends Controller
@@ -28,6 +29,18 @@ class AnafController extends Controller
     {
         try {
             $cui = $request->input('cui');
+            
+            // Store the CUI in session history
+            $history = Session::get('anaf_history', []);
+            if (!in_array($cui, $history)) {
+                $history[] = $cui;
+                // Limit history to last 20 entries
+                if (count($history) > 20) {
+                    $history = array_slice($history, -20);
+                }
+                Session::put('anaf_history', $history);
+            }
+            
             $date = date('Y-m-d');
 
             $client = new Client();

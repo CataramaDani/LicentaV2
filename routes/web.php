@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AnafController;
 use App\Http\Controllers\SeapController;
+use App\Http\Controllers\DashboardController; // Add this line
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -44,6 +45,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/seap/pie-data/{filename}', [SeapController::class, 'getAggregatedDataByCity'])->name('seap.pie.data');
     Route::get('/seap/debug', [SeapController::class, 'debugStorage'])->name('seap.debug');
     Route::get('/seap/simple-csv', [SeapController::class, 'getSimpleCsv'])->name('seap.simple-csv'); // Fallback route
+
+    // Add routes for dashboard stats
+    Route::get('/dashboard/stats/anaf', [DashboardController::class, 'getAnafStats'])->name('dashboard.stats.anaf');
+    Route::get('/dashboard/stats/seap', [DashboardController::class, 'getSeapStats'])->name('dashboard.stats.seap');
 });
 
 // Test routes for diagnosing issues
@@ -93,9 +98,9 @@ Route::get('/direct-csv', function() {
     ]);
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// Update dashboard route to use the controller
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
